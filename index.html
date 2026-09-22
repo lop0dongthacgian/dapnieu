@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Game Đập Niêu</title>
+<style>
+    * { box-sizing: border-box; }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1a1a1a;
+        font-family: Arial, 'Segoe UI', sans-serif;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .game-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* ================= KHUNG GAME ================= */
+    #game-container {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: #000;
+    }
+
+    #background {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 1;
+    }
+
+    #game-title {
+        position: absolute;
+        top: 4%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        margin: 0;
+        width: 90%;
+        text-align: center;
+        font-weight: 800;
+        font-size: clamp(26px, 7vw, 48px);
+        color: #FFD873;
+        letter-spacing: 1px;
+        -webkit-text-stroke: 1.5px #C22F24;
+        text-shadow:
+            2px 2px 0 #E4483A,
+            4px 4px 0 #8E1E16,
+            0 6px 14px rgba(0,0,0,0.55);
+        pointer-events: none;
+    }
+
+    /* ================= DÂY THỪNG ================= */
+    #rope {
+        position: absolute;
+        top: 25%;
+        left: 0;
+        width: 100%;
+        z-index: 2;
+        pointer-events: none;
+        transition: opacity .5s ease, transform .5s ease;
+    }
+    #rope.hidden {
+        opacity: 0;
+        transform: translateY(-40px);
+    }
+
+    /* ================= CÁC NIÊU ================= */
+    .pot {
+        position: absolute;
+        top: 40%;
+        left: var(--x);
+        transform: translateX(-50%);
+        width: 25%;
+        z-index: 3;
+        cursor: pointer;
+        transition: opacity .5s ease, transform .5s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pot-img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0px 8px 8px rgba(0,0,0,0.5));
+    }
+
+    .pot:hover  { transform: translateX(-50%) scale(1.05); }
+    .pot:active { transform: translateX(-50%) scale(0.95); }
+
+    .pot.hidden {
+        opacity: 0;
+        transform: translateX(-50%) scale(.6) translateY(-50px);
+        pointer-events: none;
+    }
+    .pot.revealed { pointer-events: none; }
+    .pot.revealed .pot-img { opacity: .8; }
+
+    /* ================= NHÂN VẬT (BÉ) - CHỈNH VỊ TRÍ & KÍCH THƯỚC ================= */
+    #character {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+
+    /* Tự co giãn theo màn hình, không bị bóp méo */
+    width: min(62vmin, 32vh, 580px);
+    height: auto;
+
+    z-index: 4;
+    pointer-events: none;
+    filter: drop-shadow(0px 6px 10px rgba(0,0,0,0.6));
+    transition: opacity .3s ease;
+}
+
+    /* ================= NÚT BẬT/TẮT NHẠC ================= */
+    #music-btn {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        z-index: 300;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid #FFD873;
+        background: rgba(0,0,0,.55);
+        color: #FFD873;
+        font-size: 22px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        box-shadow: 0 4px 14px rgba(0,0,0,.6);
+        transition: transform .15s, background .2s, color .2s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    #music-btn:hover  { background: rgba(0,0,0,.75); }
+    #music-btn:active { transform: scale(.9); }
+    #music-btn.muted  { color: #888; border-color: #666; }
+
+    /* ================= MÀN HÌNH CHÀO MỪNG ================= */
+    #welcome-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4vh;
+        background: radial-gradient(circle at 50% 45%,
+                    rgba(255,170,50,.5) 0%,
+                    rgba(0,0,0,.92) 70%);
+        opacity: 1;
+        visibility: visible;
+        transition: opacity .5s ease, visibility .5s;
+    }
+    #welcome-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    #welcome-title {
+        font-size: clamp(32px, 10vw, 72px);
+        font-weight: 900;
+        color: #FFD873;
+        -webkit-text-stroke: 2px #C22F24;
+        text-shadow: 4px 4px 0 #8E1E16, 0 10px 30px rgba(0,0,0,.8);
+        text-align: center;
+        margin: 0;
+        padding: 0 20px;
+    }
+    #start-btn {
+        padding: 16px 60px;
+        font-size: 24px;
+        font-family: inherit;
+        font-weight: bold;
+        color: #fff;
+        background: linear-gradient(180deg, #ff6b4a, #d8341f);
+        border: 4px solid #FFD873;
+        border-radius: 60px;
+        cursor: pointer;
+        box-shadow: 0 8px 30px rgba(0,0,0,.7);
+        transition: transform .15s, filter .2s;
+    }
+    #start-btn:hover  { filter: brightness(1.1); }
+    #start-btn:active { transform: scale(.95); }
+
+    /* ================= ĐỒNG HỒ ĐẾM NGƯỢC ================= */
+    #countdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 60;
+        font-size: clamp(90px, 28vw, 220px);
+        font-weight: 900;
+        line-height: 1;
+        color: #FFD873;
+        -webkit-text-stroke: 3px #C22F24;
+        text-shadow: 4px 4px 0 #8E1E16, 0 10px 30px rgba(0,0,0,.8);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity .25s ease, visibility .25s;
+    }
+    #countdown.show { opacity: 1; visibility: visible; }
+    #countdown.pulse { animation: countPop .5s cubic-bezier(.175,.885,.32,1.5); }
+
+    @keyframes countPop {
+        0%   { transform: translate(-50%,-50%) scale(1.9); opacity: .25; }
+        100% { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
+    }
+
+    /* ================= DÒNG GỢI Ý ================= */
+    #hint {
+    position: fixed;
+    /* Đẩy lên cao hơn một chút để không đè lên nhân vật */
+    top: 78%; 
+    left: 50%;
+    transform: translate(-50%, -12px);
+    z-index: 30;
+
+    padding: 1.2vmin 3.5vmin;
+    border-radius: 60px;
+
+    background: rgba(0,0,0,.62);
+    border: 2px solid rgba(255,216,115,.65);
+    box-shadow: 0 6px 20px rgba(0,0,0,.55);
+
+    color: #FFF3D0;
+    font-weight: 800;
+
+    font-size: clamp(15px, 3.6vmin, 30px);
+    letter-spacing: 0.4px;
+    line-height: 1.25;
+
+    /* QUAN TRỌNG: Ép chữ luôn nằm trên 1 dòng */
+    white-space: nowrap; 
+    
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .35s ease;
+    text-shadow: 0 2px 8px rgba(0,0,0,.95);
+}
+
+/* Tối ưu riêng cho màn hình điện thoại (dưới 480px) */
+@media (max-width: 480px) {
+    #hint {
+        /* Đẩy thông báo lên cao hơn nữa để nhường chỗ cho nhân vật */
+        top: 82%; 
+        
+        /* Thu nhỏ chữ một chút để vừa vặn 1 dòng trên màn hình hẹp */
+        font-size: clamp(12px, 4vw, 16px);
+        padding: 6px 14px;
+        max-width: 95vw;
+        
+        /* Vẫn giữ 1 dòng */
+        white-space: nowrap;
+    }
+
+    /* Điều chỉnh nhân vật cho cân đối lại */
+    #character {
+        width: min(48vmin, 38vh, 380px);
+        bottom: 14%;
+    }
+}
+    #hint.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, 0);
+    }
+
+    /* ================= LƯỢT CHƠI ================= */
+    #attempts {
+        position: fixed;
+        bottom: 92px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        font-size: 24px;
+        letter-spacing: 5px;
+        pointer-events: none;
+        filter: drop-shadow(0 2px 6px rgba(0,0,0,.9));
+    }
+
+    /* ================= NÚT CHƠI LẠI ================= */
+    #reset-btn {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 42px;
+        font-size: 19px;
+        font-family: inherit;
+        font-weight: bold;
+        color: #fff;
+        background: linear-gradient(180deg, #ff6b4a, #d8341f);
+        border: 3px solid #FFD873;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(0,0,0,.6);
+        z-index: 20;
+        transition: filter .2s, transform .15s;
+    }
+    #reset-btn:hover  { filter: brightness(1.1); }
+    #reset-btn:active { transform: translateX(-50%) scale(.95); }
+
+    /* ================= THÔNG BÁO NHỎ ================= */
+    #toast {
+        position: fixed;
+        bottom: 42%;
+        left: 50%;
+        transform: translate(-50%, 15px) scale(.9);
+        z-index: 150;
+        color: #FF7844;
+        font-size: clamp(20px, 6vw, 34px);
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-align: center;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: all .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-shadow:
+            -3px -3px 0 #000, 3px -3px 0 #000,
+            -3px  3px 0 #000, 3px  3px 0 #000,
+             0    6px 12px rgba(0,0,0,0.9);
+    }
+    #toast.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, 0) scale(1);
+    }
+
+    /* ================= VÒNG SÁNG BÙNG NỔ ================= */
+    #burst {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: radial-gradient(circle,
+            rgba(255,235,150,.95) 0%,
+            rgba(255,170,60,.75) 35%,
+            rgba(255,90,40,0) 70%);
+        transform: translate(-50%,-50%) scale(0);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 190;
+        will-change: transform, opacity;
+    }
+
+    /* ================= MÀN HÌNH KẾT QUẢ ================= */
+    #reveal {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2.5vh;
+        background: radial-gradient(circle at 50% 45%,
+                rgba(255,215,120,.55) 0%,
+                rgba(0,0,0,.72) 70%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity .35s ease, visibility .35s;
+    }
+    #reveal.show {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    #reveal-img {
+        width: min(78vw, 58vh);
+        height: min(78vw, 58vh);
+        object-fit: contain;
+        transform: scale(.05);
+        opacity: 0;
+        will-change: transform, opacity;
+        filter: drop-shadow(0 14px 34px rgba(0,0,0,.75));
+    }
+
+    #reveal-text {
+        font-size: clamp(28px, 9vw, 64px);
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: #FFD873;
+        -webkit-text-stroke: 2px #C22F24;
+        text-shadow: 3px 3px 0 #8E1E16, 0 10px 24px rgba(0,0,0,.85);
+        transform: scale(0);
+        transition: transform .5s cubic-bezier(.175,.885,.32,1.6) .35s;
+    }
+    #reveal.show #reveal-text { transform: scale(1); }
+
+    #reveal-btn {
+        padding: 14px 48px;
+        font-size: 20px;
+        font-family: inherit;
+        font-weight: bold;
+        color: #fff;
+        background: linear-gradient(180deg, #ff6b4a, #d8341f);
+        border: 3px solid #FFD873;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(0,0,0,.65);
+        transform: scale(0);
+        transition: transform .45s cubic-bezier(.175,.885,.32,1.6) .5s, filter .2s;
+    }
+    #reveal.show #reveal-btn { transform: scale(1); }
+    #reveal-btn:hover  { filter: brightness(1.12); }
+    #reveal-btn:active { filter: brightness(1.25); }
+
+
+    /* ================= CHÂN TRANG ================= */
+    #footer-credit {
+        position: fixed;
+        left: 50%;
+        bottom: 6px;
+        transform: translateX(-50%);
+        z-index: 100;
+        width: 100%;
+        text-align: center;
+        color: rgba(255, 243, 208, 0.9);
+        font-size: clamp(18px, 2.8vw, 25px);
+        font-weight: 600;
+        text-shadow: 0 2px 5px rgba(0,0,0,.9);
+        pointer-events: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+
+    <div id="game-container">
+        <!-- Ảnh nền -->
+        <img id="background" src="nen.jpg" alt="Background">
+
+        <!-- Tiêu đề -->
+        <h1 id="game-title">Trò chơi đập niêu</h1>
+
+        <!-- Dây thừng -->
+        <img id="rope" src="day.png" alt="Rope">
+
+        <!-- Nhân vật (Bé) đứng ở vòng cỏ tròn dưới -->
+        <!-- Bạn có thể chỉnh kích thước và vị trí ở CSS #character -->
+        <img id="character" src="be1.png" alt="Bé">
+
+        <!-- 5 Cái niêu -->
+        <div class="pot" style="--x: 10%;" data-id="1"><img class="pot-img" src="nieu.png" alt="Niêu"></div>
+        <div class="pot" style="--x: 30%;" data-id="2"><img class="pot-img" src="nieu.png" alt="Niêu"></div>
+        <div class="pot" style="--x: 50%;" data-id="3"><img class="pot-img" src="nieu.png" alt="Niêu"></div>
+        <div class="pot" style="--x: 70%;" data-id="4"><img class="pot-img" src="nieu.png" alt="Niêu"></div>
+        <div class="pot" style="--x: 90%;" data-id="5"><img class="pot-img" src="nieu.png" alt="Niêu"></div>
+    </div>
+
+    <!-- Chân trang -->
+    <div id="footer-credit">Trò chơi được tạo bởi Phan Anh</div>
+
+    <!-- Nút bật/tắt nhạc -->
+    <button id="music-btn" title="Bật/Tắt nhạc" aria-label="Bật/Tắt nhạc">🔊</button>
+
+    <!-- Nhạc nền -->
+    <audio id="bg-music" src="background_music.mp3" loop preload="auto"></audio>
+
+    <!-- Đồng hồ đếm ngược -->
+    <div id="countdown"></div>
+
+    <!-- Dòng gợi ý -->
+    <div id="hint"></div>
+
+    <!-- Số lượt còn lại -->
+    <div id="attempts"></div>
+
+    <!-- Thông báo nhỏ -->
+    <div id="toast"></div>
+
+    <!-- Vòng sáng bùng nổ -->
+    <div id="burst"></div>
+
+    <!-- Nút chơi lại -->
+    <button id="reset-btn">Chơi Lại</button>
+
+    <!-- Màn hình kết quả full -->
+    <div id="reveal">
+        <img id="reveal-img" src="" alt="">
+        <div id="reveal-text"></div>
+        <button id="reveal-btn">Chơi Lại</button>
+    </div>
+
+    <!-- MÀN HÌNH CHÀO MỪNG -->
+    <div id="welcome-screen">
+        <h1 id="welcome-title">🎉 Đập Niêu 🎉</h1>
+        <button id="start-btn">Bắt đầu</button>
+    </div>
+</div>
+
+<script>
+/* =========================================================
+   DỮ LIỆU
+   ========================================================= */
+const outcomes = [
+    { src: 'nuoc.png', text: '💧 NƯỚC' },
+    { src: 'cat.png',  text: '🏖️ CÁT' },
+    { src: 'soi.png',  text: '🪨 SỎI' },
+    { src: 'be.png',   text: '🕳️ NIÊU TRỐNG' },
+    { src: 'qua.png',  text: '🎁 QUÀ' }
+];
+
+const POT_POSITIONS = ['10%', '30%', '50%', '70%', '90%'];
+
+const MEMORIZE_SECONDS = 5;
+const MAX_ATTEMPTS     = 3;
+
+/* =========================================================
+   CHỐNG LẶP LẠI KẾT QUẢ
+   ========================================================= */
+const REPEAT_GAP   = 4;
+const HISTORY_SIZE = REPEAT_GAP - 1;
+
+let revealHistory = [];
+
+const slotHistory = {};
+POT_POSITIONS.forEach(pos => { slotHistory[pos] = []; });
+
+function isRecentlyRevealed(outcome) {
+    return revealHistory.indexOf(outcome) !== -1;
+}
+
+function rememberRevealed(outcome) {
+    revealHistory.push(outcome);
+    while (revealHistory.length > HISTORY_SIZE) revealHistory.shift();
+}
+
+/* =========================================================
+   BIẾN TOÀN CỤC
+   ========================================================= */
+let potsData       = {};
+let phase          = 'idle';
+let attemptsLeft   = MAX_ATTEMPTS;
+let countdownTimer = null;
+let toastTimer     = null;
+
+// Đối tượng nhân vật (bé)
+const characterImg = document.getElementById('character');
+
+/* =========================================================
+   NHẠC NỀN + NÚT BẬT/TẮT
+   ========================================================= */
+const bgMusic   = document.getElementById('bg-music');
+const musicBtn  = document.getElementById('music-btn');
+
+let musicWanted = true;
+
+bgMusic.volume = 0.5;
+
+function updateMusicButton() {
+    const playing = !bgMusic.paused && !bgMusic.ended;
+    if (playing) {
+        musicBtn.textContent = '🔊';
+        musicBtn.classList.remove('muted');
+    } else {
+        musicBtn.textContent = '🔇';
+        musicBtn.classList.add('muted');
+    }
+}
+
+function tryPlayMusic() {
+    if (!musicWanted) return;
+    const p = bgMusic.play();
+    if (p && typeof p.catch === 'function') {
+        p.catch(() => { updateMusicButton(); });
+    }
+}
+
+tryPlayMusic();
+
+function unlockMusicOnFirstInteraction() {
+    if (musicWanted && bgMusic.paused) {
+        tryPlayMusic();
+    }
+    document.removeEventListener('touchstart', unlockMusicOnFirstInteraction);
+    document.removeEventListener('click', unlockMusicOnFirstInteraction);
+    document.removeEventListener('keydown', unlockMusicOnFirstInteraction);
+}
+document.addEventListener('touchstart', unlockMusicOnFirstInteraction, { passive: true });
+document.addEventListener('click',      unlockMusicOnFirstInteraction);
+document.addEventListener('keydown',    unlockMusicOnFirstInteraction);
+
+bgMusic.addEventListener('play',  updateMusicButton);
+bgMusic.addEventListener('pause', updateMusicButton);
+bgMusic.addEventListener('ended', updateMusicButton);
+
+musicBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    musicWanted = !musicWanted;
+    if (musicWanted) {
+        tryPlayMusic();
+    } else {
+        bgMusic.pause();
+    }
+    updateMusicButton();
+});
+
+/* =========================================================
+   TIỆN ÍCH
+   ========================================================= */
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function preloadImages() {
+    const list = [
+        'nen.jpg', 'day.png', 'nieu.png',
+        'be1.png', 'be2.png', 'be3.png', // Đảm bảo nạp cả 3 ảnh bé
+        ...outcomes.map(o => o.src)
+    ];
+    list.forEach(src => { const i = new Image(); i.src = src; });
+}
+
+function showToast(message, duration = 1600) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function hideToast() {
+    clearTimeout(toastTimer);
+    document.getElementById('toast').classList.remove('show');
+}
+
+function updateAttemptsUI() {
+    const el = document.getElementById('attempts');
+    let s = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        s += (i < attemptsLeft) ? '❤️' : '🖤';
+    }
+    el.textContent = s;
+}
+
+/* =========================================================
+   TẠO THẾ XÁO "THÔNG MINH"
+   ========================================================= */
+function buildLayout() {
+    const slots = POT_POSITIONS.slice();
+    const n     = slots.length;
+
+    function solve(assigned, used) {
+        if (assigned.length === n) return assigned.slice();
+
+        const slot   = slots[assigned.length];
+        const banned = slotHistory[slot];
+
+        let pool = [];
+        for (let i = 0; i < outcomes.length; i++) {
+            if (!used[i] && banned.indexOf(outcomes[i]) === -1) pool.push(i);
+        }
+
+        if (pool.length === 0) {
+            for (let i = 0; i < outcomes.length; i++) {
+                if (!used[i]) pool.push(i);
+            }
+        }
+
+        shuffleArray(pool);
+
+        for (let k = 0; k < pool.length; k++) {
+            const i = pool[k];
+            used[i] = true;
+            assigned.push(i);
+
+            const res = solve(assigned, used);
+            if (res) return res;
+
+            assigned.pop();
+            used[i] = false;
+        }
+        return null;
+    }
+
+    const order = solve([], new Array(outcomes.length).fill(false));
+    const layout = order.map(i => outcomes[i]);
+
+    slots.forEach((slot, i) => {
+        slotHistory[slot].push(layout[i]);
+        while (slotHistory[slot].length > HISTORY_SIZE) {
+            slotHistory[slot].shift();
+        }
+    });
+
+    return layout;
+}
+
+function ensureFreshOutcome(potId) {
+    const data = potsData[potId];
+    if (!isRecentlyRevealed(data.outcome)) return data.outcome;
+
+    const partners = Object.keys(potsData).filter(id => {
+        const d = potsData[id];
+        return id !== potId && !d.isBroken && !isRecentlyRevealed(d.outcome);
+    });
+
+    if (partners.length === 0) return data.outcome;
+
+    const partnerId = partners[Math.floor(Math.random() * partners.length)];
+
+    const tmp = potsData[partnerId].outcome;
+    potsData[partnerId].outcome = data.outcome;
+    data.outcome = tmp;
+
+    return data.outcome;
+}
+
+/* =========================================================
+   KHỞI TẠO / CHƠI LẠI
+   ========================================================= */
+function initGame() {
+    clearInterval(countdownTimer);
+    hideToast();
+    hideReveal();
+    hideBurst();
+
+    attemptsLeft = MAX_ATTEMPTS;
+    updateAttemptsUI();
+
+    // Reset nhân vật (bé) về ảnh be1.png khi bắt đầu/chơi lại
+    if (characterImg) {
+        characterImg.src = 'be1.png';
+    }
+
+    const layout        = buildLayout();
+    const shuffledSlots = shuffleArray([...POT_POSITIONS]);
+    const potElements   = document.querySelectorAll('.pot');
+
+    potElements.forEach((potElement, index) => {
+        const potId     = potElement.getAttribute('data-id');
+        const slot      = shuffledSlots[index];
+        const slotIndex = POT_POSITIONS.indexOf(slot);
+
+        potsData[potId] = {
+            isBroken: false,
+            outcome: layout[slotIndex]
+        };
+
+        potElement.style.setProperty('--x', slot);
+
+        const img = potElement.querySelector('.pot-img');
+        img.src = 'nieu.png';
+        img.alt = 'Niêu lành';
+
+        potElement.classList.remove('hidden', 'revealed');
+    });
+
+    document.getElementById('rope').classList.remove('hidden');
+
+    phase = 'memorize';
+    showHint('👀 Ghi nhớ vị trí các niêu!');
+    startCountdown();
+}
+
+/* =========================================================
+   ĐẾM NGƯỢC
+   ========================================================= */
+function startCountdown() {
+    const el = document.getElementById('countdown');
+    let n = MEMORIZE_SECONDS;
+
+    el.textContent = n;
+    el.classList.add('show');
+    pulseCountdown(el);
+
+    countdownTimer = setInterval(() => {
+        n--;
+        if (n > 0) {
+            el.textContent = n;
+            pulseCountdown(el);
+        } else {
+            clearInterval(countdownTimer);
+            el.classList.remove('show');
+            startGuessing();
+        }
+    }, 1000);
+}
+
+function pulseCountdown(el) {
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
+}
+
+/* =========================================================
+   PHA ĐOÁN
+   ========================================================= */
+function startGuessing() {
+    phase = 'guess';
+    document.getElementById('rope').classList.add('hidden');
+    document.querySelectorAll('.pot').forEach(p => p.classList.add('hidden'));
+
+    // ✅ Dây thừng ẩn -> bé chuyển sang be2.png
+    if (characterImg) {
+        characterImg.src = 'be2.png';
+    }
+
+    showHint('👆 Chạm vào vị trí niêu bạn nhớ!');
+}
+
+function showHint(text) {
+    const el = document.getElementById('hint');
+    el.textContent = text;
+    el.classList.add('show');
+}
+
+function hideHint() {
+    document.getElementById('hint').classList.remove('show');
+}
+
+/* =========================================================
+   XỬ LÝ CHẠM
+   ========================================================= */
+function handleGuess(clientX, clientY) {
+    const hit = findHitPot(clientX, clientY);
+
+    if (hit) {
+        const potId = hit.getAttribute('data-id');
+        const data  = potsData[potId];
+        if (!data || data.isBroken) return;
+
+        data.isBroken = true;
+        phase = 'reveal';
+        hideHint();
+
+        // ✅ Khi đập trúng niêu -> đổi bé sang ảnh be2.png
+        if (characterImg) {
+            characterImg.src = 'be3.png';
+        }
+
+        const outcome = ensureFreshOutcome(potId);
+        rememberRevealed(outcome);
+
+        showReveal(outcome, hit);
+    } else {
+        attemptsLeft--;
+        updateAttemptsUI();
+
+        if (attemptsLeft <= 0) {
+            gameOver();
+        } else {
+            showToast('❌ Trượt rồi! Còn ' + attemptsLeft + ' lượt');
+            shakeScreen();
+        }
+    }
+}
+
+function findHitPot(clientX, clientY) {
+    const container = document.getElementById('game-container');
+    const cRect = container.getBoundingClientRect();
+    const x = clientX - cRect.left;
+    const y = clientY - cRect.top;
+
+    let best = null;
+    let bestDist = Infinity;
+
+    document.querySelectorAll('.pot').forEach(pot => {
+        const cx = pot.offsetLeft;
+        const cy = pot.offsetTop + pot.offsetHeight / 2;
+        const halfW = pot.offsetWidth  / 2;
+        const halfH = pot.offsetHeight / 2;
+        const padX = halfW * 0.10;
+        const padY = halfH * 0.10;
+
+        if (Math.abs(x - cx) <= halfW + padX &&
+            Math.abs(y - cy) <= halfH + padY) {
+            const d = Math.hypot(x - cx, y - cy);
+            if (d < bestDist) { bestDist = d; best = pot; }
+        }
+    });
+
+    return best;
+}
+
+/* =========================================================
+   HIỆU ỨNG
+   ========================================================= */
+function shakeScreen() {
+    const c = document.getElementById('game-container');
+    c.animate(
+        [
+            { transform: 'translateX(0)' },
+            { transform: 'translateX(-10px)' },
+            { transform: 'translateX(10px)' },
+            { transform: 'translateX(-6px)' },
+            { transform: 'translateX(6px)' },
+            { transform: 'translateX(0)' }
+        ],
+        { duration: 320, easing: 'ease-in-out' }
+    );
+}
+
+function showReveal(outcome, potElement) {
+    const container = document.getElementById('game-container');
+    const cRect = container.getBoundingClientRect();
+
+    // Bùng nổ ở giữa niêu
+    const cx = cRect.left + potElement.offsetLeft;
+    const cy = cRect.top + potElement.offsetTop + potElement.offsetHeight / 2;
+
+    const burst = document.getElementById('burst');
+    burst.style.transition = 'none';
+    burst.style.left = cx + 'px';
+    burst.style.top  = cy + 'px';
+    burst.style.transform = 'translate(-50%,-50%) scale(0)';
+    burst.style.opacity = '1';
+    void burst.offsetWidth;
+    burst.style.transition = 'transform .75s ease-out, opacity .75s ease-out';
+    burst.style.transform = 'translate(-50%,-50%) scale(230)';
+    burst.style.opacity = '0';
+
+    const reveal = document.getElementById('reveal');
+    const img    = document.getElementById('reveal-img');
+    const text   = document.getElementById('reveal-text');
+
+    img.src = outcome.src;
+    reveal.classList.add('show');
+
+    const ir = img.getBoundingClientRect();
+    const ox = ((cx - ir.left) / ir.width)  * 100;
+    const oy = ((cy - ir.top)  / ir.height) * 100;
+
+    img.style.transition = 'none';
+    img.style.transformOrigin = ox + '% ' + oy + '%';
+    img.style.transform = 'scale(0.05)';
+    img.style.opacity = '0';
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            img.style.transition = 'transform .8s cubic-bezier(.2,1.3,.4,1), opacity .35s ease';
+            img.style.transform = 'scale(1)';
+            img.style.opacity = '1';
+        });
+    });
+
+    text.textContent = outcome.text;
+}
+
+function hideReveal() {
+    const reveal = document.getElementById('reveal');
+    reveal.classList.remove('show');
+
+    const img = document.getElementById('reveal-img');
+    img.style.transition = 'none';
+    img.style.transform = 'scale(0.05)';
+    img.style.opacity = '0';
+
+    document.getElementById('reveal-text').textContent = '';
+}
+
+function hideBurst() {
+    const burst = document.getElementById('burst');
+    burst.style.transition = 'none';
+    burst.style.transform = 'translate(-50%,-50%) scale(0)';
+    burst.style.opacity = '0';
+}
+
+function gameOver() {
+    phase = 'over';
+    hideHint();
+
+    document.querySelectorAll('.pot').forEach(pot => {
+        const data = potsData[pot.getAttribute('data-id')];
+        if (data) {
+            pot.querySelector('.pot-img').src = data.outcome.src;
+        }
+        pot.classList.remove('hidden');
+        pot.classList.add('revealed');
+    });
+
+    document.getElementById('rope').classList.remove('hidden');
+    showToast('😢 Hết lượt rồi! Nhấn "Chơi Lại"', 2600);
+}
+
+/* =========================================================
+   KHỞI ĐỘNG
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    preloadImages();
+    updateMusicButton();
+
+    const container = document.getElementById('game-container');
+    const resetBtn  = document.getElementById('reset-btn');
+    const revealBtn = document.getElementById('reveal-btn');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const startBtn  = document.getElementById('start-btn');
+
+    resetBtn.addEventListener('click', initGame);
+    revealBtn.addEventListener('click', initGame);
+
+    startBtn.addEventListener('click', () => {
+        welcomeScreen.classList.add('hidden');
+        tryPlayMusic();
+        initGame();
+    });
+
+    container.addEventListener('click', (e) => {
+        if (phase !== 'guess') return;
+        handleGuess(e.clientX, e.clientY);
+    });
+});
+</script>
+</body>
+</html>
